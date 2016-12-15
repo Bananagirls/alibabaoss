@@ -10,6 +10,7 @@ import android.text.TextUtils;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -42,63 +43,40 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
-    private static final String endpoint = "http://oss-cn-shanghai.aliyuncs.com";
+    //bucket  外网域名
+    private static final String endpoint = "***************";
+    //用户的信息
     private static final String accessKeyId = "*******";
     private static final String accessKeySecret = "********";
+    //bucket 的值
     private static final String bucketName = "*******";
 
+
     private OSSClient oss;
-    private String picturePath;//上传文件路径
+    //上传文件路径
+    private String picturePath;
+    //上传文件名称
     private String name;
 
 
     private void initoss() {
         OSSCredentialProvider credentialProvider = new OSSPlainTextAKSKCredentialProvider(accessKeyId, accessKeySecret);
-// 服务器获取token
-//  OSSCredentialProvider credentialProvider = new OSSFederationCredentialProvider() {
-//            @Override
-//            public OSSFederationToken getFederationToken() {
-//                String stsJson;
-//                OkHttpClient client = new OkHttpClient();
-//                Request request = new Request.Builder().url(endpoint).build();
-//                try {
-//                    Response response = client.newCall(request).execute();
-//                    if (response.isSuccessful()) {
-//                        stsJson = response.body().string();
-//                    } else {
-//                        throw new IOException("Unexpected code " + response);
-//                    }
-//                } catch (IOException e) {
-//                    e.printStackTrace();
-//                    Log.e("GetSTSTokenFail", e.toString());
-//                    return null;
-//                }
-//
-//                try {
-//                    JSONObject jsonObjs = new JSONObject(stsJson);
-//                    String ak = jsonObjs.getString("AccessKeyId");
-//                    String sk = jsonObjs.getString("AccessKeySecret");
-//                    String token = jsonObjs.getString("SecurityToken");
-//                    String expiration = jsonObjs.getString("Expiration");
-//                    return new OSSFederationToken(ak, sk, token, expiration);
-//                } catch (JSONException e) {
-//                    Log.e("GetSTSTokenFail", e.toString());
-//                    e.printStackTrace();
-//                    return null;
-//                }
-//            }
-//        };
-//        ClientConfiguration conf = new ClientConfiguration();
-//        conf.setConnectionTimeout(15 * 1000); // 连接超时，默认15秒
-//        conf.setSocketTimeout(15 * 1000); // socket超时，默认15秒
-//        conf.setMaxConcurrentRequest(5); // 最大并发请求书，默认5个
-//        conf.setMaxErrorRetry(2); // 失败后最大重试次数，默认2次
-//        oss = new OSSClient(getApplicationContext(), endpoint, credentialProvider, conf);
-        oss = new OSSClient(getApplicationContext(), endpoint, credentialProvider);
+//        从服务器获取token
+//        OSSCredentialProvider credentialProvider1 = new STSGetter(endpoint);
+        ClientConfiguration conf = new ClientConfiguration();
+        conf.setConnectionTimeout(15 * 1000); // 连接超时，默认15秒
+        conf.setSocketTimeout(15 * 1000); // socket超时，默认15秒
+        conf.setMaxConcurrentRequest(5); // 最大并发请求书，默认5个
+        conf.setMaxErrorRetry(2); // 失败后最大重试次数，默认2次
+        oss = new OSSClient(getApplicationContext(), endpoint, credentialProvider, conf);
     }
 
+    //上传文件
     private TextView tv_upload;
+    //选择图片
     private TextView tv_chooseimg;
+    //上传进度条
+    private ProgressBar pb_progress;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -162,18 +140,20 @@ public class MainActivity extends AppCompatActivity {
     private void upload() {
         // 构造上传请求
         PutObjectRequest put = new PutObjectRequest(bucketName, name, picturePath);
-        //设置上传时header的值
-        ObjectMetadata objectMetadata = new ObjectMetadata();
-        objectMetadata.setContentType("在Web服务中定义文件的类型，决定以什么形式、什么编码读取这个文件");
-        objectMetadata.setCacheControl("");
-        objectMetadata.setContentLength(512);
-        //md5 加密
-        objectMetadata.setContentMD5("");
-        put.setMetadata(objectMetadata);
+//        //设置上传时header的值
+//        ObjectMetadata objectMetadata = new ObjectMetadata();
+//        objectMetadata.setContentType("在Web服务中定义文件的类型，决定以什么形式、什么编码读取这个文件");
+//        objectMetadata.setCacheControl("");
+//        objectMetadata.setContentLength(1024);
+//        //md5 加密
+//        objectMetadata.setContentMD5("");
+//        put.setMetadata(objectMetadata);
         // 异步上传时可以设置进度回调
         put.setProgressCallback(new OSSProgressCallback<PutObjectRequest>() {
             @Override
             public void onProgress(PutObjectRequest request, long currentSize, long totalSize) {
+                final int progress = (int) (100 * currentSize / totalSize);
+                pb_progress.setProgress(progress);
                 Log.d("PutObject", "currentSize: " + currentSize + " totalSize: " + totalSize);
             }
         });
@@ -212,6 +192,7 @@ public class MainActivity extends AppCompatActivity {
     private void initView() {
         tv_upload = (TextView) findViewById(R.id.tv_upload);
         tv_chooseimg = (TextView) findViewById(R.id.tv_chooseimg);
+        pb_progress = (ProgressBar) findViewById(R.id.pb_progress);
     }
 
 
